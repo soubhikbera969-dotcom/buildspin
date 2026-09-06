@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buildspin — a brief to build</title>
+<meta name="description" content="Spin a client and a brief to build for them. No timer, just the next thing to ship.">
+<meta name="theme-color" content="#101514">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Buildspin">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #101514;
+    --cream: #F3E9D8;
+    --muted: #9C978C;
+    --muted2: #A39C8F;
+    --orange: #CC8354;
+    --orange-text: #241A12;
+    --pill-border: rgba(255,255,255,0.12);
+    --pill-bg: rgba(255,255,255,0.04);
+  }
+
+  *{ box-sizing: border-box; }
+
+  html,body{
+    height:100%;
+    margin:0;
+    background: var(--bg);
+    color: var(--cream);
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    overflow-x:hidden;
+  }
+
+  body{
+    position:relative;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    padding: 64px 20px 40px;
+  }
+
+  .glow{
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events:none;
+  }
+  .glow::before, .glow::after{
+    content:"";
+    position:absolute;
+    width: 60vw;
+    height: 60vw;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.55;
+  }
+  .glow::before{
+    top: -18vw;
+    left: -18vw;
+    background: radial-gradient(circle, rgba(178,108,58,0.55), transparent 70%);
+  }
+  .glow::after{
+    bottom: -22vw;
+    right: -18vw;
+    background: radial-gradient(circle, rgba(28,74,64,0.55), transparent 70%);
+  }
+
+  header{
+    text-align:center;
+    margin-bottom: 34px;
+  }
+
+  h1{
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 500;
+    font-size: clamp(2.4rem, 6vw, 3.4rem);
+    margin: 0 0 10px;
+    letter-spacing: -0.01em;
+  }
+
+  header p{
+    margin:0;
+    color: var(--muted2);
+    font-size: 1rem;
+  }
+
+  .toggle{
+    display:inline-flex;
+    background: var(--pill-bg);
+    border: 1px solid var(--pill-border);
+    border-radius: 999px;
+    padding: 5px;
+    gap: 4px;
+    margin-bottom: 18px;
+  }
+
+  .toggle button{
+    border:none;
+    background: transparent;
+    color: var(--muted2);
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 11px 22px;
+    border-radius: 999px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap: 8px;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .toggle button.active{
+    background: var(--orange);
+    color: var(--orange-text);
+  }
+
+  .mode-desc{
+    color: var(--muted2);
+    font-size: 0.95rem;
+    margin-bottom: 22px;
+    text-align:center;
+  }
+
+  .cat-wrap{
+    position: relative;
+    margin-bottom: 54px;
+  }
+
+  select.cat-select{
+    appearance: none;
+    -webkit-appearance: none;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 600;
+    font-size: 0.98rem;
+    color: var(--cream);
+    background: var(--pill-bg);
+    border: 1px solid var(--pill-border);
+    border-radius: 999px;
+    padding: 13px 44px 13px 22px;
+    cursor:pointer;
+  }
+  select.cat-select:focus-visible{
+    outline: 2px solid var(--orange);
+    outline-offset: 2px;
+  }
+
+  .cat-wrap::after{
+    content: "▾";
+    position:absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted2);
+    pointer-events:none;
+    font-size: 0.85rem;
+  }
+
+  .status{
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 0.78rem;
+    letter-spacing: 0.22em;
+    color: var(--orange);
+    margin-bottom: 18px;
+    text-transform: uppercase;
+  }
+
+  .result{
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 500;
+    font-size: clamp(2.1rem, 6.4vw, 4.2rem);
+    line-height: 1.12;
+    text-align:center;
+    max-width: 920px;
+    min-height: 2.4em;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin-bottom: 46px;
+    color: var(--cream);
+  }
+
+  .result.spinning{ opacity: 0.55; }
+
+  .result.settle{ animation: pop 0.4s ease-out; }
+  @keyframes pop{
+    0%{ transform: translateY(-6px); opacity: 0.4; }
+    100%{ transform: translateY(0); opacity: 1; }
+  }
+
+  .actions{
+    display:flex;
+    align-items:center;
+    gap: 14px;
+  }
+
+  .spin-btn{
+    background: var(--orange);
+    color: var(--orange-text);
+    border: none;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 1.05rem;
+    padding: 16px 40px;
+    border-radius: 999px;
+    cursor:pointer;
+    transition: filter 0.15s ease, transform 0.1s ease;
+  }
+  .spin-btn:hover:not(:disabled){ filter: brightness(1.08); }
+  .spin-btn:active:not(:disabled){ transform: scale(0.97); }
+  .spin-btn:disabled{ opacity: 0.6; cursor:default; }
+
+  .icon-btn{
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: 1px solid var(--pill-border);
+    background: transparent;
+    color: var(--muted2);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+    position: relative;
+  }
+  .icon-btn:hover{ background: var(--pill-bg); color: var(--cream); }
+  .icon-btn svg{ width: 20px; height: 20px; }
+
+  button:focus-visible{
+    outline: 2px solid var(--orange);
+    outline-offset: 3px;
+  }
+
+  .toast{
+    position:absolute;
+    bottom: 62px;
+    left: 50%;
+    transform: translateX(-50%) translateY(6px);
+    background: var(--cream);
+    color: #1a1f1c;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 999px;
+    opacity:0;
+    pointer-events:none;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    white-space: nowrap;
+  }
+  .toast.on{ opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .history{
+    margin-top: 56px;
+    width: 100%;
+    max-width: 560px;
+  }
+  .history h2{
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted2);
+    font-weight: 700;
+    margin: 0 0 14px;
+    text-align:center;
+  }
+  .history ul{
+    list-style:none;
+    margin:0;
+    padding:0;
+    display:flex;
+    flex-direction:column;
+    gap: 10px;
+  }
+  .history li{
+    font-size: 0.88rem;
+    color: var(--muted2);
+    text-align:center;
+    border-bottom: 1px solid var(--pill-border);
+    padding-bottom: 10px;
+  }
+  .history li:last-child{ border-bottom:none; }
+  .history li b{ color: var(--cream); font-weight: 600; }
+  .history .empty{ text-align:center; color: var(--muted2); font-size: 0.88rem; }
+
+  @media (max-width: 480px){
+    .toggle{ flex-wrap: wrap; justify-content:center; }
+    .actions{ flex-wrap: wrap; justify-content:center; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .result.settle{ animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="glow" aria-hidden="true"></div>
+
+<header>
+  <h1>Buildspin</h1>
+  <p>spin a client, spin a build — no timer, just start.</p>
+</header>
+
+<div class="toggle" id="modeToggle" role="tablist" aria-label="Spin mode">
+  <button class="active" data-mode="persona" role="tab" aria-selected="true">👤 Persona</button>
+  <button data-mode="project" role="tab" aria-selected="false">🧩 Project</button>
+</div>
+
+<p class="mode-desc" id="modeDesc">Who you're designing for.</p>
+
+<div class="cat-wrap">
+  <select class="cat-select" id="catSelect" aria-label="Filter by industry">
+    <option value="all">✦ All industries</option>
+  </select>
+</div>
+
+<p class="status" id="statusLabel">Ready</p>
+
+<div class="result" id="resultText">tap spin to begin</div>
+
+<div class="actions">
+  <button class="spin-btn" id="spinBtn">Spin</button>
+  <button class="icon-btn" id="copyBtn" title="Copy result" aria-label="Copy result">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="9" y="9" width="12" height="12" rx="2"></rect>
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+    </svg>
+    <span class="toast" id="copyToast">copied</span>
+  </button>
+</div>
+
+<div class="history">
+  <h2>Past pulls</h2>
+  <ul id="historyList"></ul>
+  <p class="empty" id="emptyHint">Nothing yet — spins will stack up here.</p>
+</div>
+
+<script>
+  const PERSONAS = [
+    ["a solo yoga instructor","Health & Wellness"], ["a third-generation bakery owner","Food & Drink"],
+    ["an indie video game developer","Tech & Digital"], ["a nonprofit food bank","Community & Education"],
+    ["a boutique coffee roaster","Food & Drink"], ["a local locksmith","Local & Service"],
+    ["a wedding photographer","Creative & Media"], ["a mobile dog groomer","Local & Service"],
+    ["an urban beekeeper","Food & Drink"], ["a vintage vinyl record shop","Retail & Commerce"],
+    ["a freelance tattoo artist","Creative & Media"], ["a small-batch hot sauce maker","Food & Drink"],
+    ["a community theater group","Creative & Media"], ["a personal trainer","Health & Wellness"],
+    ["a used bookstore owner","Retail & Commerce"], ["a craft brewery","Food & Drink"],
+    ["a landscape architect","Local & Service"], ["an online guitar teacher","Community & Education"],
+    ["a family-run hardware store","Retail & Commerce"], ["a meal-prep chef","Food & Drink"],
+    ["a plant nursery","Retail & Commerce"], ["a self-published novelist","Creative & Media"],
+    ["a podcast host","Creative & Media"], ["a martial arts dojo","Health & Wellness"],
+    ["a handmade jewelry designer","Retail & Commerce"], ["a mobile car detailing service","Local & Service"],
+    ["a children's art camp","Community & Education"], ["a niche travel agency for solo trips","Local & Service"],
+    ["an urban farm co-op","Food & Drink"], ["a repair café collective","Community & Education"],
+    ["a ceramics studio","Creative & Media"], ["an escape room company","Local & Service"],
+    ["a language exchange club","Community & Education"], ["a specialty spice importer","Food & Drink"],
+    ["a drone photography service","Creative & Media"], ["a candle-making workshop","Retail & Commerce"],
+    ["a sneaker resale hustler","Retail & Commerce"], ["a nonprofit literacy program","Community & Education"],
+    ["a vegan bakery","Food & Drink"], ["a boutique fitness studio","Health & Wellness"],
+    ["a woodworking hobbyist turned seller","Retail & Commerce"], ["a pet sitting service","Local & Service"],
+    ["a local farmers market","Food & Drink"], ["a wedding planner","Local & Service"],
+    ["an indie perfume brand","Retail & Commerce"], ["a driving instructor","Local & Service"],
+    ["a home bakery on Instagram","Food & Drink"], ["a boutique law firm","Local & Service"],
+    ["a freelance video editor","Creative & Media"], ["a hostel owner","Local & Service"],
+    ["a mobile mechanic","Local & Service"], ["a house cleaning service","Local & Service"],
+    ["a pest control company","Local & Service"], ["a handyman","Local & Service"],
+    ["a tailor & alterations shop","Local & Service"], ["an electrician","Local & Service"],
+    ["a real estate agent","Local & Service"],
+    ["a food truck owner","Food & Drink"], ["a juice bar","Food & Drink"],
+    ["a private chef","Food & Drink"], ["a cheese shop","Food & Drink"],
+    ["a bubble tea shop","Food & Drink"], ["a catering company","Food & Drink"],
+    ["a cocktail bar","Food & Drink"],
+    ["a freelance illustrator","Creative & Media"], ["an indie film studio","Creative & Media"],
+    ["a graphic design studio","Creative & Media"], ["a voiceover artist","Creative & Media"],
+    ["a stand-up comedian","Creative & Media"], ["a YouTuber","Creative & Media"],
+    ["a mural painter","Creative & Media"],
+    ["a physical therapist","Health & Wellness"], ["a massage therapist","Health & Wellness"],
+    ["a nutritionist","Health & Wellness"], ["a meditation coach","Health & Wellness"],
+    ["a pilates studio","Health & Wellness"], ["a chiropractor","Health & Wellness"],
+    ["a run club","Health & Wellness"],
+    ["a thrift & vintage clothing store","Retail & Commerce"], ["a stationery shop","Retail & Commerce"],
+    ["a toy store","Retail & Commerce"], ["a home decor boutique","Retail & Commerce"],
+    ["a sustainable fashion brand","Retail & Commerce"], ["a comic book store","Retail & Commerce"],
+    ["a leather goods maker","Retail & Commerce"],
+    ["a coding bootcamp","Community & Education"], ["a scholarship fund","Community & Education"],
+    ["a chess club","Community & Education"], ["a senior center","Community & Education"],
+    ["a youth mentorship program","Community & Education"], ["a community garden","Community & Education"],
+    ["a maker space","Community & Education"],
+    ["a SaaS startup founder","Tech & Digital"], ["a no-code app builder","Tech & Digital"],
+    ["a cybersecurity consultant","Tech & Digital"], ["a freelance developer","Tech & Digital"],
+    ["an AI startup founder","Tech & Digital"], ["a productivity app maker","Tech & Digital"],
+    ["a browser extension developer","Tech & Digital"],
+    ["a CA / accounting firm","Finance & Legal"], ["an insurance agent","Finance & Legal"],
+    ["a financial advisor","Finance & Legal"], ["an immigration consultant","Finance & Legal"],
+    ["a tax filing service","Finance & Legal"], ["a notary & legal documentation service","Finance & Legal"],
+    ["a matrimonial bureau","Local & Service"], ["a packers & movers company","Local & Service"],
+    ["an interior decor firm","Local & Service"], ["a tour & travel operator","Local & Service"],
+    ["an astrology & pooja services consultant","Local & Service"], ["a driving school","Local & Service"],
+    ["a printing press","Local & Service"], ["a currency exchange office","Local & Service"],
+    ["an architecture firm","Local & Service"], ["a coworking space","Local & Service"],
+    ["a gaming café","Local & Service"],
+    ["a computer training institute","Community & Education"], ["a coaching institute (JEE / NEET)","Community & Education"],
+    ["a private school","Community & Education"], ["a vocational training center","Community & Education"],
+    ["an NGO / charitable trust","Community & Education"], ["a temple trust","Community & Education"],
+    ["a mobile repair shop","Retail & Commerce"], ["a florist","Retail & Commerce"],
+    ["a gift shop","Retail & Commerce"], ["a mobile accessories store","Retail & Commerce"],
+    ["a D2C skincare brand","Retail & Commerce"], ["a furniture store","Retail & Commerce"],
+    ["a veterinary clinic","Health & Wellness"], ["a salon & spa","Health & Wellness"],
+    ["a dental clinic","Health & Wellness"], ["a diagnostic lab","Health & Wellness"],
+    ["a multi-specialty clinic","Health & Wellness"], ["an ayurveda & wellness retreat","Health & Wellness"],
+    ["a fertility clinic","Health & Wellness"],
+    ["a cloud kitchen","Food & Drink"], ["a tiffin & meal delivery service","Food & Drink"],
+    ["a regional restaurant chain","Food & Drink"], ["a sweets & mithai shop","Food & Drink"],
+    ["a highway dhaba","Food & Drink"],
+    ["a digital marketing agency","Tech & Digital"], ["a content creator building a personal brand","Tech & Digital"],
+    ["a dropshipping store owner","Tech & Digital"],
+    ["an event management company","Creative & Media"], ["a videography studio","Creative & Media"]
+  ];
+
+  const PROJECTS = [
+    ["a one-page landing site","Tech & Digital"], ["a booking & appointments app","Tech & Digital"],
+    ["an online store","Retail & Commerce"], ["a members-only community portal","Community & Education"],
+    ["a portfolio site","Creative & Media"], ["a subscription box signup flow","Retail & Commerce"],
+    ["an event ticketing page","Local & Service"], ["a loyalty rewards app","Retail & Commerce"],
+    ["a recipe & meal planner app","Food & Drink"], ["a course / learning platform","Community & Education"],
+    ["a donation & fundraising page","Community & Education"], ["an inventory tracker for a small team","Tech & Digital"],
+    ["a review & testimonial wall","Tech & Digital"], ["a waitlist landing page","Tech & Digital"],
+    ["a local directory / marketplace","Local & Service"], ["a quote & estimate request tool","Local & Service"],
+    ["a newsletter & blog site","Creative & Media"], ["a photo gallery & client proofing app","Creative & Media"],
+    ["a habit / progress tracker app","Health & Wellness"], ["an internal staff dashboard","Tech & Digital"],
+    ["a multi-vendor marketplace","Retail & Commerce"], ["a QR-code menu site","Food & Drink"],
+    ["a referral program page","Tech & Digital"], ["a resource library / wiki","Community & Education"],
+    ["a job board for a niche industry","Community & Education"], ["a rental & booking calendar app","Local & Service"],
+    ["a feedback & survey tool","Tech & Digital"], ["an AI chatbot concierge widget","Tech & Digital"],
+    ["a pricing & plans comparison page","Tech & Digital"], ["a case-study showcase site","Creative & Media"],
+    ["a franchise / location finder page","Local & Service"], ["a client intake form & mini-CRM","Local & Service"],
+    ["a virtual queue / waitlist app","Local & Service"], ["a gift card & voucher store","Retail & Commerce"],
+    ["a one-tap contact / digital business card","Tech & Digital"],
+    ["a Chrome extension landing page","Tech & Digital"], ["a status / uptime page","Tech & Digital"],
+    ["a changelog & release notes page","Tech & Digital"], ["a developer API docs site","Tech & Digital"],
+    ["a design system style guide","Tech & Digital"], ["a bug tracker mini-tool","Tech & Digital"],
+    ["a community bot dashboard","Tech & Digital"],
+    ["a print-on-demand storefront","Retail & Commerce"], ["a pre-order / crowdfunding page","Retail & Commerce"],
+    ["a size-guide & fitting tool","Retail & Commerce"], ["a wishlist & registry app","Retail & Commerce"],
+    ["a flash-sale countdown page","Retail & Commerce"], ["a returns & exchange portal","Retail & Commerce"],
+    ["an affiliate & reseller dashboard","Retail & Commerce"],
+    ["a table reservation app","Food & Drink"], ["a delivery zone checker","Food & Drink"],
+    ["a loyalty punch-card app","Food & Drink"], ["a catering order form","Food & Drink"],
+    ["a recipe subscription site","Food & Drink"], ["a tasting notes app","Food & Drink"],
+    ["a food truck locator map","Food & Drink"],
+    ["a client proposal & invoicing page","Creative & Media"], ["a press kit / media kit page","Creative & Media"],
+    ["a video reel showcase site","Creative & Media"], ["a project wall / portfolio grid","Creative & Media"],
+    ["a podcast episode hub","Creative & Media"], ["a music release landing page","Creative & Media"],
+    ["a licensing & usage-rights request form","Creative & Media"],
+    ["a class schedule & booking app","Health & Wellness"], ["a mood / symptom tracker app","Health & Wellness"],
+    ["a meal & workout plan generator","Health & Wellness"], ["a telehealth intake form","Health & Wellness"],
+    ["a membership & billing portal","Health & Wellness"], ["a progress photo journal app","Health & Wellness"],
+    ["a therapist / provider directory site","Health & Wellness"],
+    ["a volunteer sign-up app","Community & Education"], ["an alumni network portal","Community & Education"],
+    ["a scholarship application tracker","Community & Education"], ["a mentor-matching app","Community & Education"],
+    ["a classroom resource hub","Community & Education"], ["an event RSVP page","Community & Education"],
+    ["a peer-review / grading tool","Community & Education"],
+    ["a service-area coverage map","Local & Service"], ["a before / after gallery site","Local & Service"],
+    ["an emergency call-out request page","Local & Service"], ["a maintenance reminder app","Local & Service"],
+    ["a multi-location booking system","Local & Service"], ["a technician dispatch dashboard","Local & Service"],
+    ["a customer review request tool","Local & Service"],
+    ["a WhatsApp catalog & ordering bot","Tech & Digital"], ["an invoice & billing tool","Tech & Digital"],
+    ["an HRMS / employee portal","Tech & Digital"], ["a POS & inventory system","Tech & Digital"],
+    ["an AI customer support chatbot","Tech & Digital"], ["a resume builder tool","Tech & Digital"],
+    ["a QR-code digital menu & payments page","Tech & Digital"], ["a multi-language website","Tech & Digital"],
+    ["a franchise management system","Tech & Digital"], ["a personal branding website","Tech & Digital"],
+    ["a loan / EMI calculator tool","Finance & Legal"], ["a tax filing intake portal","Finance & Legal"],
+    ["an insurance quote comparison page","Finance & Legal"], ["a document e-signing workflow","Finance & Legal"],
+    ["a client portfolio dashboard","Finance & Legal"],
+    ["a D2C brand storefront","Retail & Commerce"], ["a WhatsApp order & catalog page","Retail & Commerce"],
+    ["a wholesale / B2B ordering portal","Retail & Commerce"],
+    ["a hospital / clinic appointment system","Health & Wellness"], ["a lab report delivery portal","Health & Wellness"],
+    ["a telemedicine consultation app","Health & Wellness"], ["a patient intake & records form","Health & Wellness"],
+    ["a school management system","Community & Education"], ["a coaching institute LMS","Community & Education"],
+    ["an online test / quiz platform","Community & Education"], ["an admission enquiry & application form","Community & Education"],
+    ["an alumni donation page","Community & Education"],
+    ["a real estate property listing site","Local & Service"], ["a rental agreement generator","Local & Service"],
+    ["a service quotation & invoicing tool","Local & Service"], ["a moving cost estimator tool","Local & Service"],
+    ["a cloud kitchen ordering site","Food & Drink"], ["a tiffin subscription management app","Food & Drink"],
+    ["an event booking & vendor portal","Creative & Media"], ["a wedding website for couples","Creative & Media"]
+  ];
+
+  const CATEGORIES = ["All industries","Local & Service","Food & Drink","Creative & Media","Health & Wellness","Retail & Commerce","Community & Education","Tech & Digital","Finance & Legal"];
+
+  const modeDescText = {
+    persona: "Who you're designing for.",
+    project: "What you're going to build."
+  };
+
+  const toggle = document.getElementById('modeToggle');
+  const modeDesc = document.getElementById('modeDesc');
+  const catSelect = document.getElementById('catSelect');
+  const statusLabel = document.getElementById('statusLabel');
+  const resultText = document.getElementById('resultText');
+  const spinBtn = document.getElementById('spinBtn');
+  const copyBtn = document.getElementById('copyBtn');
+  const copyToast = document.getElementById('copyToast');
+  const historyList = document.getElementById('historyList');
+  const emptyHint = document.getElementById('emptyHint');
+
+  let mode = 'persona';
+  let spinning = false;
+  let currentResult = null;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  CATEGORIES.slice(1).forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c;
+    opt.textContent = c;
+    catSelect.appendChild(opt);
+  });
+
+  toggle.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if(!btn || spinning) return;
+    toggle.querySelectorAll('button').forEach(b => {
+      b.classList.remove('active');
+      b.setAttribute('aria-selected','false');
+    });
+    btn.classList.add('active');
+    btn.setAttribute('aria-selected','true');
+    mode = btn.dataset.mode;
+    modeDesc.textContent = modeDescText[mode];
+  });
+
+  function currentPool(){
+    const source = mode === 'persona' ? PERSONAS : PROJECTS;
+    const cat = catSelect.value;
+    const filtered = cat === 'all' ? source : source.filter(item => item[1] === cat);
+    return filtered.length ? filtered : source;
+  }
+
+  function pickDifferent(list, avoid){
+    if(list.length < 2) return list[0][0];
+    let v;
+    do { v = list[Math.floor(Math.random()*list.length)][0]; } while(v === avoid);
+    return v;
+  }
+
+  function capitalize(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  function addHistoryRow(mode, text){
+    emptyHint.style.display = 'none';
+    const li = document.createElement('li');
+    li.innerHTML = `<b>${mode === 'persona' ? 'For' : 'Build'}:</b> ${text}`;
+    historyList.prepend(li);
+    while(historyList.children.length > 6){
+      historyList.removeChild(historyList.lastChild);
+    }
+  }
+
+  function spin(){
+    if(spinning) return;
+    spinning = true;
+    spinBtn.disabled = true;
+    statusLabel.textContent = 'Spinning';
+
+    const pool = currentPool();
+    const finalItem = pool[Math.floor(Math.random()*pool.length)][0];
+    const finalDisplay = capitalize(finalItem);
+
+    if(reduceMotion){
+      resultText.textContent = finalDisplay;
+      finishSpin(finalDisplay);
+      return;
+    }
+
+    resultText.classList.add('spinning');
+    const totalMs = 1100;
+    const start = performance.now();
+    let last = null;
+
+    function tick(now){
+      const elapsed = now - start;
+      if(elapsed >= totalMs){
+        resultText.textContent = finalDisplay;
+        resultText.classList.remove('spinning');
+        resultText.classList.add('settle');
+        setTimeout(()=> resultText.classList.remove('settle'), 420);
+        finishSpin(finalDisplay);
+        return;
+      }
+      resultText.textContent = capitalize(pickDifferent(pool, last));
+      last = resultText.textContent;
+      const progress = elapsed / totalMs;
+      const delay = 45 + 230 * Math.pow(progress, 2);
+      setTimeout(()=> requestAnimationFrame(tick), delay);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  function finishSpin(finalDisplay){
+    currentResult = { mode, text: finalDisplay };
+    addHistoryRow(mode, finalDisplay);
+    statusLabel.textContent = 'Ready';
+    spinning = false;
+    spinBtn.disabled = false;
+  }
+
+  function copyResult(){
+    if(!currentResult) return;
+    const label = currentResult.mode === 'persona' ? 'Client' : 'Build';
+    navigator.clipboard.writeText(`${label}: ${currentResult.text}`).then(()=>{
+      copyToast.classList.add('on');
+      setTimeout(()=> copyToast.classList.remove('on'), 1300);
+    }).catch(()=>{});
+  }
+
+  spinBtn.addEventListener('click', spin);
+  copyBtn.addEventListener('click', copyResult);
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(()=>{});
+    });
+  }
+</script>
+
+</body>
+</html>
